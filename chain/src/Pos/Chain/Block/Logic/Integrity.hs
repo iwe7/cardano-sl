@@ -21,7 +21,7 @@ module Pos.Chain.Block.Logic.Integrity
 import           Universum
 
 import           Control.Lens (ix)
-import           Formatting (build, int, sformat, (%))
+import           Formatting (build, int, sformat, shown, (%))
 import           Serokell.Data.Memory.Units (Byte, memory)
 import           Serokell.Util (VerificationRes (..), verifyGeneric)
 
@@ -36,7 +36,7 @@ import           Pos.Chain.Block.Header (BlockHeader (..), HasHeaderHash (..),
 import           Pos.Chain.Block.IsHeader (headerSlotL)
 import           Pos.Chain.Block.Main (mebAttributes, mehAttributes)
 import           Pos.Chain.Genesis as Genesis (Config (..))
-import           Pos.Chain.Update (BlockVersionData (..))
+import           Pos.Chain.Update (BlockVersionData (..), ConsensusEra (..))
 import           Pos.Core (ChainDifficulty, EpochOrSlot, HasDifficulty (..),
                      HasEpochIndex (..), HasEpochOrSlot (..), SlotId (..),
                      SlotLeaders, addressHash, getSlotIndex)
@@ -67,6 +67,8 @@ data VerifyHeaderParams = VerifyHeaderParams
       -- ^ Maximal allowed header size. It's applied to 'BlockHeader'.
     , vhpVerifyNoUnknown :: !Bool
       -- ^ Check that header has no unknown attributes.
+    , vhpConsensusEra    :: !ConsensusEra
+      -- ^ Used to perform specific header verification logic depending on the consensus era
     } deriving (Eq, Show, Generic)
 
 instance NFData VerifyHeaderParams
@@ -172,7 +174,9 @@ verifyHeader pm VerifyHeaderParams {..} h =
         , checkEpochOrSlot (getEpochOrSlot prevHeader) (getEpochOrSlot h)
         , case h of
               BlockHeaderGenesis _ -> (True, "") -- check that epochId prevHeader < epochId h performed above
-              BlockHeaderMain _    -> sameEpoch (prevHeader ^. epochIndexL) (h ^. epochIndexL)
+              BlockHeaderMain _    -> case vhpConsensusEra of
+                Original -> sameEpoch (prevHeader ^. epochIndexL) (h ^. epochIndexL)
+                OBFT     -> (True, "") -- @intricate: Perhaps in the OBFT case we should check if this is a valid epoch transition?
         ]
 
     -- CHECK: Verifies that the slot does not lie in the future.
@@ -192,12 +196,16 @@ verifyHeader pm VerifyHeaderParams {..} h =
         case h of
             BlockHeaderGenesis _ -> []
             BlockHeaderMain mainHeader ->
-                [ ( (Just (addressHash $ mainHeader ^. mainHeaderLeaderKey) ==
-                     leaders ^?
-                     ix (fromIntegral $ getSlotIndex $
-                         siSlot $ mainHeader ^. headerSlotL))
-                  , "block's leader is different from expected one")
-                ]
+                let slotIndex = getSlotIndex $ siSlot $ mainHeader ^. headerSlotL
+                    slotLeader = leaders ^? ix (fromIntegral slotIndex)
+                    expectedSlotLeader = addressHash $ mainHeader ^. mainHeaderLeaderKey
+                in [ ( (Just expectedSlotLeader == slotLeader)
+                     , sformat ("slot's leader, "%build%", is different from expected one, "%build%". slotIndex: "%build%", leaders: "%shown)
+                               slotLeader
+                               expectedSlotLeader
+                               slotIndex
+                               leaders)
+                   ]
 
     verifyNoUnknown (BlockHeaderGenesis genH) =
         let attrs = genH ^. gbhExtra . gehAttributes
@@ -214,11 +222,12 @@ verifyHeader pm VerifyHeaderParams {..} h =
 -- linking checks are performed!
 verifyHeaders ::
        ProtocolMagic
+    -> ConsensusEra
     -> Maybe SlotLeaders
     -> NewestFirst [] BlockHeader
     -> VerificationRes
-verifyHeaders _ _ (NewestFirst []) = mempty
-verifyHeaders pm leaders (NewestFirst (headers@(_:xh))) =
+verifyHeaders _ _ _ (NewestFirst []) = mempty
+verifyHeaders pm era leaders (NewestFirst (headers@(_:xh))) =
     snd $
     foldr foldFoo (leaders,mempty) $ headers `zip` (map Just xh ++ [Nothing])
   where
@@ -236,6 +245,7 @@ verifyHeaders pm leaders (NewestFirst (headers@(_:xh))) =
         , vhpLeaders = l
         , vhpMaxSize = Nothing
         , vhpVerifyNoUnknown = False
+        , vhpConsensusEra = era
         }
 
 ----------------------------------------------------------------------------
@@ -269,12 +279,13 @@ instance NFData VerifyBlockParams
 -- 3.  (Optional) No block has any unknown attributes.
 verifyBlock
     :: Genesis.Config
+    -> ConsensusEra
     -> VerifyBlockParams
     -> Block
     -> VerificationRes
-verifyBlock genesisConfig VerifyBlockParams {..} blk = mconcat
+verifyBlock genesisConfig era VerifyBlockParams {..} blk = mconcat
     [ verifyFromEither "internal block consistency"
-                       (verifyBlockInternal genesisConfig blk)
+                       (verifyBlockInternal genesisConfig era blk)
     , verifyHeader (configProtocolMagic genesisConfig)
                    vbpVerifyHeader
                    (getBlockHeader blk)
@@ -320,13 +331,14 @@ type VerifyBlocksIter = (SlotLeaders, Maybe BlockHeader, VerificationRes)
 -- type is crucial.
 verifyBlocks
     :: Genesis.Config
+    -> ConsensusEra
     -> Maybe SlotId
     -> Bool
     -> BlockVersionData
     -> SlotLeaders
     -> OldestFirst [] Block
     -> VerificationRes
-verifyBlocks genesisConfig curSlotId verifyNoUnknown bvd initLeaders = view _3 . foldl' step start
+verifyBlocks genesisConfig era curSlotId verifyNoUnknown bvd initLeaders = view _3 . foldl' step start
   where
     start :: VerifyBlocksIter
     -- Note that here we never know previous header before this
@@ -351,6 +363,7 @@ verifyBlocks genesisConfig curSlotId verifyNoUnknown bvd initLeaders = view _3 .
                 , vhpCurrentSlot = curSlotId
                 , vhpMaxSize = Just (bvdMaxHeaderSize bvd)
                 , vhpVerifyNoUnknown = verifyNoUnknown
+                , vhpConsensusEra = era
                 }
             vbp =
                 VerifyBlockParams
@@ -358,4 +371,4 @@ verifyBlocks genesisConfig curSlotId verifyNoUnknown bvd initLeaders = view _3 .
                 , vbpMaxSize = blockMaxSize
                 , vbpVerifyNoUnknown = verifyNoUnknown
                 }
-        in (newLeaders, Just $ getBlockHeader blk, res <> verifyBlock genesisConfig vbp blk)
+        in (newLeaders, Just $ getBlockHeader blk, res <> verifyBlock genesisConfig era vbp blk)

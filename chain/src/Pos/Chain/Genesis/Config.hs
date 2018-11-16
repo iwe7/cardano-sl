@@ -15,6 +15,7 @@ module Pos.Chain.Genesis.Config
        , configEpochSlots
        , configGeneratedSecretsThrow
        , configBootStakeholders
+       , configGenesisWStakeholders
        , configHeavyDelegation
        , configStartTime
        , configVssCerts
@@ -62,10 +63,10 @@ import           Pos.Chain.Genesis.ProtocolConstants
                      (GenesisProtocolConstants (..),
                      genesisProtocolConstantsToProtocolConstants)
 import           Pos.Chain.Genesis.Spec (GenesisSpec (..))
-import           Pos.Chain.Genesis.WStakeholders (GenesisWStakeholders)
+import           Pos.Chain.Genesis.WStakeholders (GenesisWStakeholders (..))
 import           Pos.Chain.Ssc.VssCertificatesMap (VssCertificatesMap)
 import           Pos.Chain.Update.BlockVersionData (BlockVersionData)
-import           Pos.Core.Common (BlockCount, SharedSeed)
+import           Pos.Core.Common (BlockCount, SharedSeed, StakeholderId)
 import           Pos.Core.ProtocolConstants (ProtocolConstants (..),
                      pcBlkSecurityParam, pcChainQualityThreshold, pcEpochSlots,
                      pcSlotSecurityParam, vssMaxTTL, vssMinTTL)
@@ -203,6 +204,10 @@ configGeneratedSecretsThrow =
 
 configBootStakeholders :: Config -> GenesisWStakeholders
 configBootStakeholders = gdBootStakeholders . configGenesisData
+
+configGenesisWStakeholders :: Config -> [StakeholderId]
+configGenesisWStakeholders =
+    keys . getGenesisWStakeholders . configBootStakeholders
 
 configHeavyDelegation :: Config -> GenesisDelegation
 configHeavyDelegation = gdHeavyDelegation . configGenesisData
