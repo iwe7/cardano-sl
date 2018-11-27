@@ -39,6 +39,7 @@ module Cardano.Wallet.API.V1.Types (
   , WalletType (..)
   , WalletOperation (..)
   , SpendingPassword
+  , mkPassPhrase
   , ExternalWallet (..)
   , PublicKeyAsBase58
   , mkPublicKeyAsBase58
@@ -106,7 +107,7 @@ module Cardano.Wallet.API.V1.Types (
   , mkLocalTimeDifference
   , EstimatedCompletionTime
   , mkEstimatedCompletionTime
-  , SyncThroughput
+  , SyncThroughput (..)
   , mkSyncThroughput
   , SyncState (..)
   , SyncProgress (..)
