@@ -479,6 +479,47 @@ description = "A library for generating 2D Charts and Plots";
 license = stdenv.lib.licenses.bsd3;
 
 }) {};
+"Chart-cairo" = callPackage
+({
+  mkDerivation
+, array
+, base
+, cairo
+, Chart
+, colour
+, data-default-class
+, lens
+, mtl
+, old-locale
+, operational
+, stdenv
+, time
+}:
+mkDerivation {
+
+pname = "Chart-cairo";
+version = "1.9";
+sha256 = "197bbd266b3cae54786a2a516c6a20dd28300b5745bb7e01676139efa8f15645";
+libraryHaskellDepends = [
+array
+base
+cairo
+Chart
+colour
+data-default-class
+lens
+mtl
+old-locale
+operational
+time
+];
+doHaddock = false;
+doCheck = false;
+homepage = "https://github.com/timbod7/haskell-chart/wiki";
+description = "Cairo backend for Charts";
+license = stdenv.lib.licenses.bsd3;
+
+}) {};
 "Chart-diagrams" = callPackage
 ({
   mkDerivation
@@ -17050,6 +17091,141 @@ vector
 doHaddock = false;
 homepage = "https://github.com/input-output-hk/cardano-sl/#readme";
 description = "The Wallet Backend for a Cardano node";
+license = stdenv.lib.licenses.mit;
+
+}) {};
+"cardano-sl-wallet-tool" = callPackage
+({
+  mkDerivation
+, aeson
+, aeson-options
+, aeson-pretty
+, async
+, base
+, bifunctors
+, bytestring
+, cardano-sl
+, cardano-sl-core
+, cardano-sl-crypto
+, cardano-sl-mnemonic
+, cardano-sl-util
+, cardano-sl-wallet-new
+, cardano-sl-x509
+, Chart
+, Chart-cairo
+, connection
+, containers
+, criterion
+, cryptonite
+, data-default
+, directory
+, dlist
+, exceptions
+, filepath
+, formatting
+, http-api-data
+, http-client
+, http-client-tls
+, http-types
+, lens
+, mtl
+, optparse-applicative
+, parsec
+, pem
+, retry
+, safe-exceptions
+, servant
+, servant-client
+, servant-client-core
+, stdenv
+, text
+, time
+, time-units
+, tls
+, transformers
+, universum
+, unix
+, unordered-containers
+, vector
+, x509
+, x509-store
+}:
+mkDerivation {
+
+pname = "cardano-sl-wallet-tool";
+version = "2.0.0";
+src = ./../wallet-tool;
+configureFlags = [
+"--ghc-option=-fwarn-redundant-constraints"
+"--ghc-option=-Wall"
+"--ghc-option=-Wcompat"
+"--ghc-option=-Werror"
+];
+isLibrary = true;
+isExecutable = true;
+libraryHaskellDepends = [
+aeson
+aeson-options
+aeson-pretty
+async
+base
+bifunctors
+bytestring
+cardano-sl
+cardano-sl-core
+cardano-sl-crypto
+cardano-sl-mnemonic
+cardano-sl-util
+cardano-sl-wallet-new
+cardano-sl-x509
+connection
+containers
+criterion
+cryptonite
+data-default
+directory
+dlist
+exceptions
+filepath
+formatting
+http-api-data
+http-client
+http-client-tls
+http-types
+lens
+mtl
+optparse-applicative
+parsec
+pem
+retry
+safe-exceptions
+servant
+servant-client
+servant-client-core
+text
+time
+time-units
+tls
+transformers
+universum
+unix
+unordered-containers
+vector
+x509
+x509-store
+];
+executableHaskellDepends = [
+aeson
+base
+Chart
+Chart-cairo
+optparse-applicative
+universum
+vector
+];
+doHaddock = false;
+homepage = "https://github.com/input-output-hk/cardano-sl/#readme";
+description = "A CLI to making API calls on the wallet";
 license = stdenv.lib.licenses.mit;
 
 }) {};
