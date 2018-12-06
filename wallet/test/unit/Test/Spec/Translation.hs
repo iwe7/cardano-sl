@@ -8,6 +8,7 @@ import           Universum
 import qualified Data.Set as Set
 import           Formatting (bprint, build, shown, (%))
 import qualified Formatting.Buildable
+import           Pos.Chain.Update (ConsensusEra (..))
 import           Pos.Core.Chrono
 import           Pos.Crypto (ProtocolMagic (..), RequiresNetworkMagic (..))
 import           Serokell.Util (mapJson)
@@ -297,7 +298,7 @@ intAndVerifyChain pm pc = runTranslateT pm $ do
         let chain'' = fromMaybe (error "intAndVerify: Nothing")
                     $ nonEmptyOldestFirst
                     $ chain'
-        isCardanoValid <- verifyBlocksPrefix chain''
+        isCardanoValid <- verifyBlocksPrefix Original chain''
         case (dslIsValid, isCardanoValid) of
           (Invalid _ e' , Invalid _ e) -> return $ ExpectedInvalid e' e
           (Invalid _ e' , Valid     _) -> return $ Disagreement ledger (UnexpectedValid e')
