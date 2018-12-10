@@ -65,8 +65,6 @@ import           Pos.Util.AssertMode (inAssertMode)
 import           Pos.Util.Util (HasLens', lensOf)
 import           Pos.Util.Wlog (WithLogger, logInfo)
 
-import           UnliftIO (MonadUnliftIO)
-
 ----------------------------------------------------------------------------
 -- Helpers
 ----------------------------------------------------------------------------
@@ -124,7 +122,7 @@ type MonadSlogVerify ctx m =
     )
 
 slogVerifyBlocks
-    :: (MonadSlogVerify ctx m, MonadUnliftIO m)
+    :: (MonadSlogVerify ctx m)
     => Genesis.Config
     -> Maybe SlotId -- ^ current slot
     -> OldestFirst NE Block
@@ -219,7 +217,7 @@ slogVerifyBlocksOriginal genesisConfig curSlot blocks = runExceptT $ do
 
 {-# ANN slogVerifyBlocksOBFT ("HLint: ignore Reduce duplication" :: Text) #-}
 slogVerifyBlocksOBFT
-    :: (MonadSlogVerify ctx m, MonadUnliftIO m)
+    :: (MonadSlogVerify ctx m)
     => Genesis.Config
     -> Maybe SlotId -- ^ current slot
     -> OldestFirst NE Block
@@ -234,8 +232,8 @@ slogVerifyBlocksOBFT genesisConfig curSlot blocks = runExceptT $ do
                         Just cs -> pure cs
                         Nothing -> throwError "slogVerifyBlocksOBFT: curSlot set to Nothing - \
                                     \this occurs in EBBs which should not appear"
-    leaders <- lift $ getEpochSlotLeaderScheduleObft genesisConfig
-                                                     (siEpoch initialSlot)
+    let leaders = getEpochSlotLeaderScheduleObft genesisConfig
+                                                 (siEpoch initialSlot)
     logInfo $ sformat ("slogVerifyBlocksOBFT: leaders: "%shown) leaders
     -- Do pure block verification.
     let blocksList :: OldestFirst [] Block
