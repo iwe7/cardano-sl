@@ -3,6 +3,7 @@
 module Pos.Chain.Update.BlockVersionData
        ( BlockVersionData (..)
        , isBootstrapEraBVD
+       , ObftConsensusStrictness (..)
        , ConsensusEra (..)
        , consensusEraBVD
        ) where
@@ -130,7 +131,12 @@ isBootstrapEraBVD adoptedBVD = isBootstrapEra (bvdUnlockStakeEpoch adoptedBVD)
 obftEraFlagValue :: EpochIndex
 obftEraFlagValue = EpochIndex 9999999999999999999
 
-data ConsensusEra = Original | OBFT
+data ObftConsensusStrictness = ObftStrict | ObftLenient
+    deriving (Eq, Show, Generic)
+
+instance NFData ObftConsensusStrictness
+
+data ConsensusEra = Original | OBFT ObftConsensusStrictness
     deriving (Eq, Show, Generic)
 
 instance NFData ConsensusEra
@@ -139,7 +145,7 @@ instance NFData ConsensusEra
 -- tell us whether we are in the Original or OBFT consensus eras.
 consensusEraBVD :: BlockVersionData -> ConsensusEra
 consensusEraBVD bvd = if obftEraFlagValue == bvdUnlockStakeEpoch bvd
-                         then OBFT
+                         then OBFT ObftLenient
                          else Original
 
 deriveSimpleBi ''BlockVersionData [

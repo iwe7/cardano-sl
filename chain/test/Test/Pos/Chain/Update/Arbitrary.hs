@@ -15,7 +15,8 @@ import           Test.QuickCheck.Arbitrary.Generic (genericArbitrary,
                      genericShrink)
 
 import           Pos.Chain.Update (BlockVersion (..), BlockVersionData (..),
-                     BlockVersionModifier, ConsensusEra, SoftforkRule (..),
+                     BlockVersionModifier, ConsensusEra,
+                     ObftConsensusStrictness, SoftforkRule (..),
                      SystemTag (..), UpdateData (..), UpdatePayload (..),
                      UpdateProposal, UpdateProposalToSign (..),
                      UpdateVote (..), VoteState (..), mkUpdateProposalWSign,
@@ -46,6 +47,10 @@ instance Arbitrary BlockVersionModifier where
     shrink = genericShrink
 
 instance Arbitrary ConsensusEra where
+    arbitrary = genericArbitrary
+    shrink = genericShrink
+
+instance Arbitrary ObftConsensusStrictness where
     arbitrary = genericArbitrary
     shrink = genericShrink
 
