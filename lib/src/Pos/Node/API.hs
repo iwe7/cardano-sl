@@ -569,8 +569,19 @@ instance ToSchema (V1 Core.SlotId) where
         pure $ NamedSchema (Just "Core.SlotId") $ mempty
             & type_ .~ SwaggerString
 
-deriving instance ToJSON (V1 Core.SlotId)
-deriving instance FromJSON (V1 Core.SlotId)
+instance ToJSON (V1 Core.SlotId) where
+    toJSON (V1 s) =
+        object
+            [ "epoch" .= toJSON (s ^. Core.siEpochL)
+            , "slot"  .= toJSON (s ^. Core.siSlotL)
+            ]
+
+instance FromJSON (V1 Core.SlotId) where
+    parseJSON = withObject "SlotId" $ \sl ->
+        Core.SlotId
+            <$> (fromInteger <$> sl .: "epoch")
+            <*> (Core.UnsafeLocalSlotIndex <$> sl .: "slot")
+            <&> V1
 
 instance Arbitrary (V1 Core.SlotId) where
     arbitrary = fmap V1 arbitrary
