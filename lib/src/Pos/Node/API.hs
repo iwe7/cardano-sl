@@ -572,8 +572,8 @@ instance ToSchema (V1 Core.SlotId) where
 instance ToJSON (V1 Core.SlotId) where
     toJSON (V1 s) =
         object
-            [ "epoch" .= toJSON (s ^. Core.siEpochL)
-            , "slot"  .= toJSON (s ^. Core.siSlotL)
+            [ "epoch" .= toJSON (Core.getEpochIndex $ Core.siEpoch s)
+            , "slot"  .= toJSON (Core.getSlotIndex  $ Core.siSlot s)
             ]
 
 instance FromJSON (V1 Core.SlotId) where
@@ -604,9 +604,11 @@ instance ToSchema (V1 Core.TxFeePolicy) where
         pure $ NamedSchema (Just "Core.TxFeePolicy") $ mempty
             & type_ .~ SwaggerString
 
-deriving instance ToJSON (V1 Core.TxFeePolicy)
-deriving instance FromJSON (V1 Core.TxFeePolicy)
+instance ToJSON (V1 Core.TxFeePolicy) where
+    toJSON (V1 p) = toJSON p
 
+instance FromJSON (V1 Core.TxFeePolicy) where
+    parseJSON v = V1 <$> parseJSON v
 
 instance Arbitrary (V1 Core.SlotCount) where
     arbitrary = fmap V1 arbitrary
@@ -616,8 +618,12 @@ instance ToSchema (V1 Core.SlotCount) where
         pure $ NamedSchema (Just "Core.SlotCount") $ mempty
             & type_ .~ SwaggerString
 
-deriving instance ToJSON (V1 Core.SlotCount) -- TODO ?
-deriving instance FromJSON (V1 Core.SlotCount) --TODO ?
+
+instance ToJSON (V1 Core.SlotCount) where
+    toJSON (V1 (Core.SlotCount c)) = toJSON c
+
+instance FromJSON (V1 Core.SlotCount) where
+    parseJSON v = V1 . Core.SlotCount <$> parseJSON v
 
 -- | The @static@ settings for this wallet node. In particular, we could group
 -- here protocol-related settings like the slot duration, the transaction max size,
